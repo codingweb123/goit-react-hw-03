@@ -13,7 +13,7 @@ export default function App() {
 	const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
 	const [isLoading, setIsLoading] = useState<boolean>(false)
 	const [hasError, setHasError] = useState<boolean>(false)
-	const [currentMovie, setCurrentMovie] = useState<Movie>()
+	const [currentMovie, setCurrentMovie] = useState<Movie | null>(null)
 	const showLoader = () => setIsLoading(true)
 	const hideLoader = () => setIsLoading(false)
 	const modalOpen = () => setIsModalOpen(true)
@@ -27,6 +27,7 @@ export default function App() {
 
 	const searchSubmit = async (query: string) => {
 		showLoader()
+		setHasError(false)
 		setMovies([])
 		try {
 			const data = await fetchMovies(query)
