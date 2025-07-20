@@ -1,50 +1,56 @@
 import { useState } from "react"
+import ErrorMessage from "../ErrorMessage/ErrorMessage"
+import Loader from "../Loader/Loader"
+import MovieGrid from "../MovieGrid/MovieGrid"
+import MovieModal from "../MovieModal/MovieModal"
+import SearchBar from "../SearchBar/SearchBar"
 import css from "./App.module.css"
-import CafeInfo from "../CafeInfo/CafeInfo"
-import Notification from "../Notification/Notification"
-import VoteOptions from "../VoteOptions/VoteOptions"
-import VoteStats from "../VoteStats/VoteStats"
-import { type Votes, type VoteType } from "../../types/votes"
+import toast, { Toaster } from "react-hot-toast"
+import { type Movie } from "../../types/movie"
+import { fetchMovies } from "../../services/movieService"
 
 export default function App() {
-	const defaultVotes: Votes = {
-		good: 0,
-		neutral: 0,
-		bad: 0,
-	}
-	const [votes, setVotes] = useState<Votes>(defaultVotes)
-	const updateVote = (key: VoteType) => {
-		setVotes({
-			...votes,
-			[key]: votes[key] + 1,
-		})
-	}
-	const resetVotes = () => {
-		setVotes(defaultVotes)
+	const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
+	const [isLoading, setIsLoading] = useState<boolean>(false)
+	const [hasError, setHasError] = useState<boolean>(false)
+	const [currentMovie, setCurrentMovie] = useState<Movie>()
+	const showLoader = () => setIsLoading(true)
+	const hideLoader = () => setIsLoading(false)
+	const modalOpen = () => setIsModalOpen(true)
+	const modalClose = () => setIsModalOpen(false)
+	const selectMovie = (movie: Movie) => {
+		setCurrentMovie(movie)
+		modalOpen()
 	}
 
-	const totalVotes = votes.good + votes.neutral + votes.bad
-	const canReset = totalVotes > 0
-	const positiveRate = totalVotes
-		? Math.round((votes.good / totalVotes) * 100)
-		: 0
+	const [movies, setMovies] = useState<Movie[]>([])
+
+	const searchSubmit = async (query: string) => {
+		showLoader()
+		setMovies([])
+		try {
+			const data = await fetchMovies(query)
+			if (data.length == 0) {
+				toast.error("No movies found for your request.")
+				return
+			}
+			setMovies(data)
+		} catch {
+			setHasError(true)
+		} finally {
+			hideLoader()
+		}
+	}
 
 	return (
 		<div className={css.app}>
-			<CafeInfo />
-			<VoteOptions
-				onVote={updateVote}
-				onReset={resetVotes}
-				canReset={canReset}
-			/>
-			{totalVotes > 0 ? (
-				<VoteStats
-					votes={votes}
-					totalVotes={totalVotes}
-					positiveRate={positiveRate}
-				/>
-			) : (
-				<Notification />
+			<Toaster />
+			<SearchBar onSubmit={searchSubmit} />
+			<MovieGrid onSelect={selectMovie} movies={movies} />
+			{isLoading && <Loader />}
+			{hasError && <ErrorMessage />}
+			{isModalOpen && currentMovie && (
+				<MovieModal onClose={modalClose} movie={currentMovie} />
 			)}
 		</div>
 	)
